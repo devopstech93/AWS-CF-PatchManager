@@ -1,0 +1,229 @@
+{
+     "AWSTemplateFormatVersion" : "2010-09-09",
+  
+    "Description" : "AWS SSM Patch Manager - Project Root#",
+        "Metadata" : {
+        "AWS::CloudFormation::Interface" : {
+        "ParameterGroups" : [
+        {
+            "Label" : { "default" : "Project Information Parameter" },
+            "Parameters" : [ "AWSAccountID", "AccountOwner", "ProjectName", "Environment", "RequestID", "ApproverName" ]
+        },          
+        {
+            "Label" : { "default" : "Recommended Mandetory Fields" },
+            "Parameters" : [ "MaintainanceWindowTime", "MaintainanceWindowName", "OperatingSystem", "PatchOSType", "NotificationEmailAddress" ]
+        },
+        {
+            "Label" : { "default" : "Custom Defined Values" }, 
+            "Parameters" : ["InstanceTagValue", "LinuxPatchClassification", "LinuxPatchSeverity", "ScheduleTimezone"]
+        }
+        ]
+      }
+     },
+     
+ 
+      "Conditions": {
+        "IsWindows" : { "Fn::Equals": [ { "Ref": "OperatingSystem" }, "WINDOWS" ] },
+        "IsLinux"   : { "Fn::Equals": [ { "Ref": "OperatingSystem" }, "LINUX" ] }
+      },
+
+
+      "Parameters" : {
+
+        "AWSAccountID" : {
+            "Description" : "AWS Account ID of this Resources",
+            "Type" : "String",
+            "Default" : "123456789"
+          },
+
+        "AccountOwner" : {
+            "Description" : "AWS Accont Owner of this Resources",
+            "Type" : "String",
+            "Default" : "Chaitanya"
+          },
+
+        "ProjectName" : {
+            "Description" : "Client Project Name",
+            "Type" : "String",
+            "Default" : "Che-Demo"
+          },
+
+        "Environment" : {
+            "Description" : "Envoironment Name of Resource (ex. dev, stage, production)",
+            "Type" : "String",
+            "Default" : "dev"
+          },
+
+        "RequestID" : {
+            "Description" : "Request ID of Task for this Resource",
+            "Type" : "String",
+            "Default" : "123456"
+          },
+
+        "ApproverName" : {
+            "Description" : "Approver Name for this Resource",
+            "Type" : "String",
+            "Default" : "Chaitanya"
+          },
+
+        "MaintainanceWindowTime" : {
+            "Description" : "MaintainanceWindow (MINUTE HOUR) eg. (00 09) -- 9:00 AM",
+               "Type" : "String",
+               "Default" : "00 09",
+               "MinLength": "1",
+               "ConstraintDescription": "MaintainanceWindowTime is Mandetory field to procced futher"               
+          },
+
+
+          "MaintainanceWindowDayOfWeek" : {
+            "Description" : "MaintainanceWindow Day of teh Week eg. (MON, TUE, WED, THU, FRI, SAT, SUN)",
+               "Type" : "String",
+               "Default" : "SAT",
+               "AllowedValues": ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"],
+               "MinLength": "1",
+               "ConstraintDescription": "MaintainanceWindowTime is Mandetory field to procced futher"               
+          },          
+
+        "OperatingSystem" : {
+            "Description" : "Server Operating System",
+            "Type" : "String",
+            "Default": "LINUX",
+            "AllowedValues": ["LINUX", "WINDOWS"]             
+          },
+
+          "LinuxOSName" : {
+            "Description" : "Patch Operating OS Name",
+            "Type" : "String",
+            "Default": "AMAZON_LINUX_2023",
+            "AllowedValues": ["AMAZON_LINUX_2", "AMAZON_LINUX_2022",  "AMAZON_LINUX_2023"],
+            "MinLength": "1",
+            "ConstraintDescription": "LinuxOSName is an Mandtory Field to Proceed Further"               
+          },
+
+          "LinuxOSType" : {
+            "Description" : "Patching Operating System",
+            "Type" : "String",
+            "Default" : "AmazonLinux2023",
+            "AllowedValues": ["AmazonLinux2023", "AmazonLinux2", "AmazonLinux2.0", "AmazonLinux2022"],
+            "MinLength": "1",
+            "ConstraintDescription": "LinxOSType is an Mandtory Field to Proceed Further" 
+          },
+
+          "WindowsOSName" : {
+            "Description" : "Patch Operating OS Name",
+            "Type" : "String",
+            "Default": "WINDOWS",
+            "AllowedValues": ["WINDOWS"],
+            "MinLength": "1",
+            "ConstraintDescription": "WindowsOSName is an Mandtory Field to Proceed Further"               
+          },  
+
+          "WindowsOSType" : {
+            "Description" : "Windows Operating System Type",
+            "Type" : "String",
+            "Default": "WindowsServer2012",
+            "AllowedValues": ["WindowsServer2012", "WindowsServer2012R2", "WindowsServer2016", "WindowsServer2019",  "WindowsServer2022"],
+            "MinLength": "1",
+            "ConstraintDescription": "WindowsOSType is an Mandtory Field to Proceed Further"               
+          },       
+
+          "LinuxPatchClassification" : {
+                "Description" : "Patching Classification for System",
+                "Type" : "CommaDelimitedList",
+                "Default" : "Security, Bugfix, Enhancement, Recommended, Newpackage"
+          },
+
+          "WindowsPatchClassification" : {
+            "Description" : "Patching Classification for Windows Operating System",
+            "Type" : "CommaDelimitedList",
+            "Default" : "CriticalUpdates, DefinitionUpdates, Drivers, FeaturePacks, SecurityUpdates, ServicePacks, Updates, Upgrades"
+          },          
+     
+          "LinuxPatchSeverity" : {
+              "Description" : "Patching Severity for Linux Operating System",
+              "Type" : "CommaDelimitedList",
+              "Default" : "Critical, Important, Medium, Low"
+          },
+
+          "WindowsPatchSeverity" : {
+            "Description" : "Patching Severity for Windows Operating System",
+            "Type" : "CommaDelimitedList",
+            "Default" : "Critical, Important, Moderate, Low"
+          },
+
+          "InstanceTagValue" : {
+                "Description" : "Patching Tag Value (Intance Specfied with key - PatchGroup)",
+                "Type" : "String",
+                "Default" : "Linux"
+          },
+
+          "ScheduleTimezone" : {
+              "Description" : "Patching Schedule time zone",
+              "Type" : "String",
+              "Default" : "America/New_York",
+              "AllowedValues": ["America/New_York", "America/Los_Angeles", "America/Chicago", "Asia/Tokyo", "Asia/Singapore", "Europe/London", "Europe/Paris", "Europe/Berlin", "Australia/Sydney", "Australia/Melbourne", "Australia/Perth"]
+          },
+
+          "NotificationEmailAddress" : {
+            "Description" : "Notification Email Address for SNS Topic",
+            "Type" : "String",
+            "MinLength": "1",
+            "ConstraintDescription": "NotificationEmailAddress is an Mandtory Field to Proceed Further"               
+          }          
+
+        },
+
+
+"Resources": {
+    "LinuxPatchStack": {
+        "Type": "AWS::CloudFormation::Stack",
+        "Condition": "IsLinux",
+        "Properties": {
+            "TemplateURL": "https://devopstech93-cf-templates.s3.ap-south-1.amazonaws.com/patch-manager/templates/nested/nested-amzn-linux-patch-manager-template.json",
+            "Parameters": {
+              "RequestID"               : {"Ref": "RequestID"},
+              "LinuxOSName"             : {"Ref": "LinuxOSName"},             
+              "AccountOwner"            : {"Ref": "AccountOwner"},
+              "LinuxOSType"             : {"Ref": "LinuxOSType"},
+              "ProjectName"             : {"Ref": "ProjectName"},
+              "Environment"             : {"Ref": "Environment"},
+              "ApproverName"            : {"Ref": "ApproverName"},
+              "AWSAccountID"            : {"Ref": "AWSAccountID"},
+              "LinuxPatchSeverity"      : { "Fn::Join": [",", {"Ref": "LinuxPatchSeverity"}]},
+              "OperatingSystem"         : {"Ref": "OperatingSystem" },
+              "InstanceTagValue"        : {"Ref": "InstanceTagValue"},
+              "ScheduleTimezone"        : {"Ref": "ScheduleTimezone"},              
+              "MaintainanceWindowTime"  : {"Ref": "MaintainanceWindowTime"},
+              "MaintainanceWindowDayOfWeek"  : {"Ref": "MaintainanceWindowDayOfWeek"},
+              "LinuxPatchClassification"     : { "Fn::Join": [",", {"Ref": "LinuxPatchClassification"}]},
+              "NotificationEmailAddress"  : {"Ref": "NotificationEmailAddress"}
+            }
+        }
+    },
+    "WindowsPatchStack": {
+      "Type": "AWS::CloudFormation::Stack",
+      "Condition": "IsWindows",
+      "Properties": {
+          "TemplateURL": "https://devopstech93-cf-templates.s3.ap-south-1.amazonaws.com/patch-manager/templates/nested/nested-amzn-windows-patch-manager-templat.json",
+          "Parameters": {
+            "RequestID"               : {"Ref": "RequestID"},
+            "WindowsOSName"           : {"Ref": "WindowsOSName"},
+            "WindowsOSType"           : {"Ref": "WindowsOSType"},              
+            "AccountOwner"            : {"Ref": "AccountOwner"},
+            "ProjectName"             : {"Ref": "ProjectName"},
+            "Environment"             : {"Ref": "Environment"},
+            "ApproverName"            : {"Ref": "ApproverName"},
+            "AWSAccountID"            : {"Ref": "AWSAccountID"},
+            "WindowsPatchSeverity"    : { "Fn::Join": [",", {"Ref": "WindowsPatchSeverity"}]},
+            "OperatingSystem"         : {"Ref": "OperatingSystem" },
+            "InstanceTagValue"        : {"Ref": "InstanceTagValue"},
+            "ScheduleTimezone"        : {"Ref": "ScheduleTimezone"},              
+            "MaintainanceWindowTime"  : {"Ref": "MaintainanceWindowTime"},
+            "MaintainanceWindowDayOfWeek"  : {"Ref": "MaintainanceWindowDayOfWeek"},                      
+            "WindowsPatchClassification": { "Fn::Join": [",", {"Ref": "WindowsPatchClassification"}]},
+            "NotificationEmailAddress"  : {"Ref": "NotificationEmailAddress"}
+          }
+      }
+  }
+  }
+}

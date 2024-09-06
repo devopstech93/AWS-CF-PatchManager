@@ -1,0 +1,379 @@
+{
+    "AWSTemplateFormatVersion" : "2010-09-09",
+  
+    "Description" : "AWS SSM Patch Manager - Project Nested Linux Template#",
+
+       "Parameters" : {
+
+        "AWSAccountID" : {
+            "Description" : "AWS Account ID of this Resources",
+            "Type" : "String"
+          },
+
+        "AccountOwner" : {
+            "Description" : "AWS Accont Owner of this Resources",
+            "Type" : "String"
+          },
+
+        "ProjectName" : {
+            "Description" : "customer project name",
+            "Type" : "String"
+          },
+
+        "Environment" : {
+            "Description" : "Envoironment Name of Resource (ex. dev, stage, production)",
+            "Type" : "String"
+          },
+
+        "RequestID" : {
+            "Description" : "Request ID of Task for this Resource",
+            "Type" : "String"
+          },
+
+        "ApproverName" : {
+            "Description" : "Approver Name for this Resource",
+            "Type" : "String"
+          },
+
+        "MaintainanceWindowTime" : {
+            "Description" : "MaintainanceWindow (min hr day-of-month month day-of-week year)",
+               "Type" : "String"              
+           },
+        
+        "MaintainanceWindowDayOfWeek" : {
+            "Description" : "MaintainanceWindowDayOfWeek (min hr day-of-month month day-of-week year)",
+               "Type" : "String"              
+           },           
+                       
+        "OperatingSystem" : {
+               "Description" : "Patch Operating System",
+               "Type" : "String"             
+        },
+
+        "LinuxOSName" : {
+          "Description" : "Patching Operating System",
+          "Type" : "String"
+        },       
+           
+        "LinuxOSType" : {
+            "Description" : "Patching Operating System",
+            "Type" : "String"
+        },
+
+        "LinuxPatchClassification" : {
+                "Description" : "Patching Classification for System",
+                "Type" : "CommaDelimitedList"
+            },     
+           
+        "LinuxPatchSeverity" : {
+              "Description" : "Patching Severity for Linux System",
+              "Type" : "CommaDelimitedList"
+            },
+
+        "InstanceTagValue" : {
+                "Description" : "Patching Tag Value (Intance Specfied with key - PatchGroup)",
+                "Type" : "String"
+            },
+
+        "ScheduleTimezone" : {
+              "Description" : "Patching Schedule time zone",
+              "Type" : "String"
+          },
+        
+        "NotificationEmailAddress" : {
+            "Description" : "Notification Email Address",
+            "Type" : "String"
+        }
+       },
+
+       
+       
+       "Resources" : {
+
+        "NotificationTopic": {
+            "Type": "AWS::SNS::Topic",
+            "Properties": {
+              "TopicName": { "Fn::Join": [ "-", ["AWS", { "Ref": "Environment"}, {"Ref": "ProjectName"}, {"Ref": "OperatingSystem"}, "PatchSNSTopic"]]},
+              "Tags": [
+                {"Key" : "Name", "Value" : { "Fn::Join": [ "-", ["AWS", { "Ref": "Environment"}, {"Ref": "ProjectName"}, {"Ref": "OperatingSystem"}, "PatchSNSTopic"]]}},
+                {"Key" : "Environment", "Value" : {"Ref" : "Environment"}},
+                {"Key" : "AWSAccountID", "Value" : {"Ref" : "AWSAccountID"}},
+                {"Key" : "AccountOwner", "Value" : {"Ref" : "AccountOwner"}},
+                {"Key" : "ProjectName", "Value" : {"Ref" : "ProjectName"}},
+                {"Key" : "RequestID", "Value" : {"Ref" : "RequestID"}},
+                {"Key" : "ApproverName", "Value" : {"Ref" : "ApproverName"}},
+                {"Key" : "StackName", "Value" : {"Ref" : "AWS::StackName"}}
+              ]
+            }
+          },
+
+        "NotificationTopicSubscription" : {
+          "Type" : "AWS::SNS::Subscription",
+          "Properties" : {
+            "Endpoint" : {"Ref": "NotificationEmailAddress"},
+            "Protocol" : "Email",
+            "TopicArn" : {"Ref": "NotificationTopic"}
+          }
+        },
+
+        "PatchExecutionRole": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+              "RoleName": { "Fn::Join": [ "-", ["AWS", "SSM", { "Ref": "Environment"}, {"Ref": "ProjectName"}, {"Ref": "OperatingSystem"}, "PatchIAMRole"]]},
+              "AssumeRolePolicyDocument": {
+                "Version": "2012-10-17",
+                "Statement": [
+                {
+                    "Effect": "Allow",
+                    "Principal": {
+                    "Service": [
+                        "ssm.amazonaws.com"
+                    ]
+                    },
+                    "Action": "sts:AssumeRole"
+                }
+                ]
+            },
+              "Policies": [
+                {
+                "PolicyName": { "Fn::Join": [ "-", ["AWS", "SSM", { "Ref": "Environment"}, {"Ref": "ProjectName"}, {"Ref": "OperatingSystem"}, "PatchIAMPolicy"]]},
+                "PolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                    {
+                        "Effect": "Allow",
+                        "Action": [
+                            "ssm:SendCommand",
+                            "ssm:DescribeInstanceInformation",
+                            "ssm:GetDocument",
+                            "ssm:ListCommands",
+                            "ssm:ListCommandInvocations",
+                            "logs:CreateLogStream",
+                            "logs:PutLogEvents",
+                            "logs:DescribeLogStreams",
+                            "sns:Publish",
+                            "iam:PassRole"
+                        ],
+                        "Resource": "*"
+                    }
+                    ]
+                }
+                }
+            ],
+            "Tags": [
+              {"Key" : "Name", "Value" : { "Fn::Join": [ "-", ["AWS", "SSM", { "Ref": "Environment"}, {"Ref": "ProjectName"}, {"Ref": "OperatingSystem"}, "PatchIAMRole"]]}},
+              {"Key" : "Environment", "Value" : {"Ref" : "Environment"}},
+              {"Key" : "AWSAccountID", "Value" : {"Ref" : "AWSAccountID"}},
+              {"Key" : "AccountOwner", "Value" : {"Ref" : "AccountOwner"}},
+              {"Key" : "ProjectName", "Value" : {"Ref" : "ProjectName"}},
+              {"Key" : "RequestID", "Value" : {"Ref" : "RequestID"}},
+              {"Key" : "ApproverName", "Value" : {"Ref" : "ApproverName"}},
+              {"Key" : "StackName", "Value" : {"Ref" : "AWS::StackName"}}            
+            ]
+            }
+        },
+
+        "PatchBaseLine" :  {
+             "Type" : "AWS::SSM::PatchBaseline",
+               "Properties" : {
+                "Name" : { "Fn::Join": [ "-", ["Custom", { "Ref": "Environment"}, {"Ref": "ProjectName"}, {"Ref": "OperatingSystem"}, "PatchBaseLine"]]},
+                "Description" : { "Fn::Join": [ "-", ["PatchBaseline for", { "Ref": "Environment"}, {"Ref": "ProjectName"}, {"Ref": "OperatingSystem"}]]},
+                 "OperatingSystem" : { "Ref" : "LinuxOSName" },
+                 "ApprovalRules" : {
+                        "PatchRules" : [ {
+                            "ApproveAfterDays" : 0,
+                            "ComplianceLevel" : "CRITICAL",
+                            "EnableNonSecurity" : false,
+                            "PatchFilterGroup" : {
+                                "PatchFilters" : [ {
+                                    "Key" : "PRODUCT",
+                                    "Values" : [{ "Ref" : "LinuxOSType" }]
+                                    },
+                                    {
+                                        "Key" : "CLASSIFICATION",
+                                        "Values" : [
+                                             { "Fn::Select": [0, { "Ref": "LinuxPatchClassification" }]},
+                                             { "Fn::Select": [1, { "Ref": "LinuxPatchClassification" }]},
+                                             { "Fn::Select": [2, { "Ref": "LinuxPatchClassification" }]},
+                                             { "Fn::Select": [3, { "Ref": "LinuxPatchClassification" }]},
+                                             { "Fn::Select": [4, { "Ref": "LinuxPatchClassification" }]}
+                                        ]
+                                    },
+                                    {
+                                      "Key" : "SEVERITY",
+                                      "Values" : [
+                                           { "Fn::Select": [0, { "Ref": "LinuxPatchSeverity" }]},
+                                           { "Fn::Select": [1, { "Ref": "LinuxPatchSeverity" }]},
+                                           { "Fn::Select": [2, { "Ref": "LinuxPatchSeverity" }]},
+                                           { "Fn::Select": [3, { "Ref": "LinuxPatchSeverity" }]}
+                                      ]
+                                  }                                    
+                                ]
+                              }
+                          } ]
+                  },              
+                 "ApprovedPatchesComplianceLevel" : "UNSPECIFIED",
+                 "ApprovedPatchesEnableNonSecurity" : true,
+                 "Tags": [
+                  {"Key" : "Name", "Value" : { "Fn::Join": [ "-", ["AWS", "Custom", { "Ref": "Environment"}, {"Ref": "ProjectName"}, {"Ref": "OperatingSystem"}, "PatchBaseLine"]]}},
+                  {"Key" : "Environment", "Value" : {"Ref" : "Environment"}},
+                  {"Key" : "AWSAccountID", "Value" : {"Ref" : "AWSAccountID"}},
+                  {"Key" : "AccountOwner", "Value" : {"Ref" : "AccountOwner"}},
+                  {"Key" : "ProjectName", "Value" : {"Ref" : "ProjectName"}},
+                  {"Key" : "RequestID", "Value" : {"Ref" : "RequestID"}},
+                  {"Key" : "ApproverName", "Value" : {"Ref" : "ApproverName"}},
+                  {"Key" : "StackName", "Value" : {"Ref" : "AWS::StackName"}}            
+                ]
+                 
+               }
+           },
+
+        "MaintenanceWindow": {
+            "Type": "AWS::SSM::MaintenanceWindow",
+            "Properties": {
+              "Name": { "Fn::Join": [ "-", ["AWS", "Custom", { "Ref": "Environment"}, {"Ref": "ProjectName"}, {"Ref": "OperatingSystem"}, "MaintenanceWindow"]]},
+              "Schedule": { "Fn::Sub": "cron(${MaintainanceWindowTime} ? * ${MaintainanceWindowDayOfWeek} * )"},
+              "Duration": 2,
+              "Cutoff": 1,
+              "AllowUnassociatedTargets": false,
+              "ScheduleTimezone": { "Ref": "ScheduleTimezone"},
+              "Tags": [
+                {"Key" : "Name", "Value" : { "Fn::Join": [ "-", ["AWS", "Custom", { "Ref": "Environment"}, {"Ref": "ProjectName"}, {"Ref": "OperatingSystem"}, "MaintenanceWindow"]]}},
+                {"Key" : "Environment", "Value" : {"Ref" : "Environment"}},
+                {"Key" : "AWSAccountID", "Value" : {"Ref" : "AWSAccountID"}},
+                {"Key" : "AccountOwner", "Value" : {"Ref" : "AccountOwner"}},
+                {"Key" : "ProjectName", "Value" : {"Ref" : "ProjectName"}},
+                {"Key" : "RequestID", "Value" : {"Ref" : "RequestID"}},
+                {"Key" : "ApproverName", "Value" : {"Ref" : "ApproverName"}},
+                {"Key" : "StackName", "Value" : {"Ref" : "AWS::StackName"}}            
+              ]
+            }
+          },
+
+
+        "MaintenanceWindowTarget": {
+            "Type": "AWS::SSM::MaintenanceWindowTarget",
+            "Properties": {
+              "WindowId": {
+                "Ref": "MaintenanceWindow"
+              },
+              "ResourceType": "INSTANCE",
+              "Targets": [
+                {
+                  "Key": "tag:PatchGroup",
+                  "Values": [
+                    { "Ref": "InstanceTagValue"}
+                  ]
+                },
+                {
+                  "Key": "tag:Environment",
+                  "Values": [
+                    { "Ref": "Environment"}
+                  ]
+                }
+              ],
+              "OwnerInformation": "MaintainanceWindow Target for Instance"
+            }
+          },
+
+        "MaintenanceWindowTask": {
+            "Type": "AWS::SSM::MaintenanceWindowTask",
+            "Properties": {
+                "Priority": 1,
+                "MaxConcurrency": "1",
+                "MaxErrors": "1",   
+                "WindowId": {
+                "Ref": "MaintenanceWindow"
+            },
+            "TaskArn": "AWS-RunPatchBaseline",
+            "ServiceRoleArn": {
+                "Fn::GetAtt": [
+                "PatchExecutionRole",
+                "Arn"
+                ]
+            },
+            "Targets": [
+                {
+                "Key": "WindowTargetIds",
+                "Values": [
+                    {
+                    "Ref": "MaintenanceWindowTarget"
+                    }
+                ]
+                }
+            ],
+
+          "TaskType": "RUN_COMMAND",
+          "TaskInvocationParameters": {
+            "MaintenanceWindowRunCommandParameters": {
+              "Parameters": {
+                "Operation": [
+                  "Install"
+                ]
+              },
+              "CloudWatchOutputConfig": {
+                "CloudWatchLogGroupName": {
+                  "Ref": "PatchLogGroup"
+                },
+                "CloudWatchOutputEnabled": true
+              },
+                "NotificationConfig": {
+                    "NotificationArn": { "Ref": "NotificationTopic"},
+                    "NotificationEvents": ["All"],
+                    "NotificationType": "Command"
+                },
+                "ServiceRoleArn": {
+                    "Fn::GetAtt": [
+                    "PatchExecutionRole",
+                    "Arn"
+                    ]
+                }           
+            }
+          }
+        }
+      },
+
+
+      "PatchLogGroup": {
+        "Type": "AWS::Logs::LogGroup",
+        "Properties": {
+          "LogGroupName": { "Fn::Join": [ "/", ["/aws/ssm/", { "Ref": "Environment"}, {"Ref": "ProjectName"}, {"Ref": "OperatingSystem"}, "PatchOperationLogs"]]},
+          "RetentionInDays": 30,
+          "Tags": [
+            {"Key" : "Name", "Value" : { "Fn::Join": [ "/", ["/aws/ssm/", { "Ref": "Environment"}, {"Ref": "ProjectName"}, {"Ref": "OperatingSystem"}, "PatchOperationLogs"]]}},
+            {"Key" : "Environment", "Value" : {"Ref" : "Environment"}},
+            {"Key" : "AWSAccountID", "Value" : {"Ref" : "AWSAccountID"}},
+            {"Key" : "AccountOwner", "Value" : {"Ref" : "AccountOwner"}},
+            {"Key" : "ProjectName", "Value" : {"Ref" : "ProjectName"}},
+            {"Key" : "RequestID", "Value" : {"Ref" : "RequestID"}},
+            {"Key" : "ApproverName", "Value" : {"Ref" : "ApproverName"}},
+            {"Key" : "StackName", "Value" : {"Ref" : "AWS::StackName"}}
+          ]
+        }
+      }
+    },
+
+  "Outputs": {
+      
+      "PatchNotificationTopic": {
+        "Value": {"Ref": "NotificationTopic"}
+      },
+
+      "PatchBaseLineName": {
+        "Value": {"Ref": "PatchBaseLine"}
+      },
+
+      "PatchLogGroupName": {
+        "Value": {"Ref": "PatchLogGroup"}
+      },
+
+      "MaintenanceWindow": {
+        "Value": {"Ref": "MaintenanceWindow"}
+      },
+
+      "SSMIAMRoleName": {
+        "Value": {"Ref": "PatchExecutionRole"}
+      }
+  }
+
+}
